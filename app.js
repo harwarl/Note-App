@@ -48,6 +48,7 @@ app.use(session({
 
   //csrf middleware
 app.use(csrfProtection);
+  // flash middleware
 app.use(flash());
 
 app.use((req, res, next) =>{

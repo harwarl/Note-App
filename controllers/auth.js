@@ -13,7 +13,7 @@ exports.getSignup = (req, res, next) => {
   res.render('auth/signup', {
     path: '/signup',
     pageTitle: 'Signup',
-    isAuthenticated: false
+    error: req.flash('error')
   });
 };
 
@@ -35,7 +35,8 @@ exports.postLogin = (req, res, next) => {
                     console.log(err);
                     res.redirect('/');
                 })
-            }
+              }
+            req.flash('error', 'Invalid Password');
             res.redirect('/login');
         })
     })
@@ -46,20 +47,23 @@ exports.postSignup = (req, res, next) => {
     const {email, password, confirmpassword} = req.body;
     User.findOne({email: email})
     .then(userdoc=>{
-        if(userdoc) return res.redirect('/signup');
-        return bcrypt
-        .hash(password, 10)
-        .then(hashedpassword =>{
-            const user = new User({
-                email: email,
-                password: hashedpassword,
-                cart: {items : []}
-            })
-            return user.save();
-        })
-    })
-    .then(result =>{
-        res.redirect('/login');
+      if(userdoc){
+        req.flash('error', 'User already exists');
+        return res.redirect('/signup');
+      } 
+      return bcrypt
+      .hash(password, 10)
+      .then(hashedpassword =>{
+          const user = new User({
+              email: email,
+              password: hashedpassword,
+              cart: {items : []}
+          })
+          return user.save();
+      })
+      .then(result =>{
+          res.redirect('/login');
+      })
     })
     .catch(err=>console.log(err));
 };
