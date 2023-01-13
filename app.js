@@ -3,8 +3,15 @@ const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+
+//flash 
+const flash = require('connect-flash');  
+
+//sessions and storing sessions
 const session = require('express-session');
 const MongoDBStore = require('connect-mongodb-session')(session);
+
+//cross site request forgery
 const csrf = require('csurf');
 const csrfProtection = csrf();
 
@@ -32,14 +39,16 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-//session related 
+//session related middleware
 app.use(session({
   secret: 'my secret key',
   resave: false, 
   saveUninitialized: true, 
   store: store}));
 
+  //csrf middleware
 app.use(csrfProtection);
+app.use(flash());
 
 app.use((req, res, next) =>{
   if(!req.session.user){
