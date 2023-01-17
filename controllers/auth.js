@@ -184,3 +184,21 @@ exports.getNewPassword = (req, res, next) =>{
   })
   .catch(err=>console.log(err))
 }
+
+exports.postUpdatePassword = (req, res, next) =>{
+  const { userId, password} = req.body;
+  User.findOne({_id: userId})
+  .then(user=>{
+    return bcrypt.hash(password, 10)
+    .then(hashedpassword =>{
+      console.log(hashedpassword)
+      user.password = hashedpassword;
+      return user.save();
+    })
+    .then(user=>{
+      return res.redirect('/login');
+    })
+    .catch(err=>console.log(err))
+  })
+  .catch(err=>console.log(err))
+}
