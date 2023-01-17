@@ -2,28 +2,51 @@ const User = require('../models/user');
 const nodemailer = require('nodemailer');
 const sendGridT = require('nodemailer-sendgrid-transport');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 require('dotenv').config();
 
-let options = {
-  auth : {
-    api_key: process.env.SENDGRIDAPIKEY
+// let options = {
+//   auth : {
+//     api_key: process.env.SENDGRIDAPIKEY
+//   }
+// }
+// const transport = nodemailer.createTransport(sendGridT(options));
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
+  auth: {
+      user: process.env.GMAILUSER,
+      pass: process.env.GMAILPASS
   }
-}
-const transport = nodemailer.createTransport(sendGridT(options));
+});
 
 exports.getLogin = (req, res, next) => {
+  let message = req.flash('error');
+  if(message.length > 0){
+    message = message[0];
+  }else{
+    message = null;
+  }
   res.render('auth/login', {
     path: '/login',
     pageTitle: 'Login',
-    error : req.flash('error')
+    error : message
   });
 };
 
 exports.getSignup = (req, res, next) => {
+  let message = req.flash('error');
+  if(message.length > 0){
+    message = message[0];
+  }else{
+    message = null;
+  }
   res.render('auth/signup', {
     path: '/signup',
     pageTitle: 'Signup',
-    error: req.flash('error')
+    error: message
   });
 };
 
@@ -73,9 +96,9 @@ exports.postSignup = (req, res, next) => {
       })
       .then(result =>{
           res.redirect('/login');
-          return transport.sendMail(
+          return transporter.sendMail(
             {
-              from: "oharwarl@gmail.com",
+              from: process.env.GMAILUSER,
               to: email,
               subject: 'Sign Up',
               text: 'Signup was successful',
@@ -94,3 +117,70 @@ exports.postLogout = (req, res, next) => {
     res.redirect('/');
   });
 };
+
+exports.getReset = (req, res, next) =>{
+  let message = req.flash('error');
+  if(message.length > 0){
+    message = message[0];
+  }else{
+    message = null;
+  }
+  res.render('auth/reset', {
+    path: '/reset',
+    pageTitle: 'Reset Password',
+    error : message
+  });
+}
+
+exports.postReset = (req, res, next) =>{
+  crypto.randomBytes(32, (err, buffer)=>{
+    if(err){
+      console.log(err);
+      return res.redirect('/reset');
+    }
+    const token = buffer.toString('hex');
+    User.findOne({email: req.body.email})
+    .then(user=>{
+      if(!user){
+        req.flash('error', 'Email not Registered');
+        return res.redirect('/reset');
+      }
+      user.resetToken = token;
+      user.resetTokenExpiration = Date.now() + 3600000;  //expires after one hour
+      return user.save();
+    })
+    .then(user=>{
+      res.redirect('/');
+      transporter.sendMail(
+        {
+          from: process.env.GMAILUSER,
+          to: req.body.email,
+          subject: 'Reset Password',
+          html: `<p>You requested a password reset</p>
+          <p>Click This <a href="http://localhost:3000/reset/${token}">link</a> to reset your password</p>`
+        }
+      )
+    })
+    .catch(err=>console.log(err))
+  })
+}
+
+exports.getNewPassword = (req, res, next) =>{
+  const token = req.params.token;
+  User.findOne({resetToken: token, resetTokenExpiration: {$gt: Date.now()}})
+  .then(user=>{
+    let message = req.flash('error');
+    if(message.length > 0){
+      message = message[0];
+    }else{
+      message = null;
+    }
+    res.render('auth/new-password', {
+      path: '/new-password',
+      pageTitle: 'New Password',
+      error : message,
+      userId: user._id.toString()
+    });
+  })
+  .catch(err=>console.log(err))
+}
