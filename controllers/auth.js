@@ -179,26 +179,29 @@ exports.getNewPassword = (req, res, next) =>{
       path: '/new-password',
       pageTitle: 'New Password',
       error : message,
-      userId: user._id.toString()
+      userId: user._id.toString(),
+      token: token
     });
   })
   .catch(err=>console.log(err))
 }
 
-exports.postUpdatePassword = (req, res, next) =>{
-  const { userId, password} = req.body;
-  User.findOne({_id: userId})
+exports.postNewPassword = (req, res, next) =>{
+  const { userId, password, token} = req.body;
+  let resetUser;
+  User.findOne({_id: userId, resetToken: token, resetTokenExpiration: {$gt: Date.now()}})
   .then(user=>{
-    return bcrypt.hash(password, 10)
-    .then(hashedpassword =>{
-      console.log(hashedpassword)
-      user.password = hashedpassword;
-      return user.save();
-    })
-    .then(user=>{
-      return res.redirect('/login');
-    })
-    .catch(err=>console.log(err))
+    resetUser = user;
+    return bcrypt.hash(password, 10);
   })
-  .catch(err=>console.log(err))
+  .then(hashedPassword =>{
+    resetUser.password = hashedPassword;
+    resetUser.resetToken = undefined;
+    resetUser.resetTokenExpiration = undefined;
+    return resetUser.save()
+  })
+  .then(result=>{
+    return res.redirect('/login');
+  })
+  .catch(err=>console.log(err));
 }
