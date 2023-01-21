@@ -1,42 +1,52 @@
 const express = require('express');
 const { check, body } = require('express-validator');
+
 const authController = require('../controllers/auth');
 
 const router = express.Router();
 
-router
-.route('/login')
-.get(authController.getLogin)
-.post(authController.postLogin);
+router.get('/login', authController.getLogin);
 
-router
-.route('/signup')
-.get(authController.getSignup)
-.post([check('email')
-.isEmail()
-.withMessage('Please Enter a Valid Email'), 
-body('password', 'Password should be at least 5 characters long')
-.isLength({min: 5, max: 25})
-.isAlphanumeric(),
-body('confirmPassword')
-.custom((value, {req})=>{
-    if(value !== req.body.password){
-        throw new Error("Passwords have to match");
-    }
-    return true;
-})
-], 
-authController.postSignup);
+router.get('/signup', authController.getSignup);
 
-router
-.route('/reset')
-.get(authController.getReset)
-.post(authController.postReset);
+router.post('/login', authController.postLogin);
+
+router.post(
+  '/signup',
+  [
+    check('email')
+      .isEmail()
+      .withMessage('Please enter a valid email.')
+      .custom((value, { req }) => {
+        if (value === 'test@test.com') {
+          throw new Error('This email address if forbidden.');
+        }
+        return true;
+      }),
+    body(
+      'password',
+      'Please enter a password with only numbers and text and at least 5 characters.'
+    )
+      .isLength({ min: 5 })
+      .isAlphanumeric(),
+    body('confirmPassword').custom((value, { req }) => {
+      if (value !== req.body.password) {
+        throw new Error('Passwords have to match!');
+      }
+      return true;
+    })
+  ],
+  authController.postSignup
+);
+
+router.post('/logout', authController.postLogout);
+
+router.get('/reset', authController.getReset);
+
+router.post('/reset', authController.postReset);
 
 router.get('/reset/:token', authController.getNewPassword);
 
-router.post('/newpassword', authController.postNewPassword);
-
-router.post('/logout', authController.postLogout);
+router.post('/new-password', authController.postNewPassword);
 
 module.exports = router;
