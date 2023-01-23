@@ -17,7 +17,7 @@ exports.getAddProduct = (req, res, next) => {
 
 exports.postAddProduct = (req, res, next) => {
   const title = req.body.title;
-  const imageUrl = req.body.imageUrl;
+  const imageUrl = req.body.image;
   const price = req.body.price;
   const description = req.body.description;
   const errors = validationResult(req);
@@ -41,7 +41,6 @@ exports.postAddProduct = (req, res, next) => {
   }
 
   const product = new Product({
-    _id: new mongoose.Types.ObjectId('5badf72403fd8b5be0366e81'),
     title: title,
     price: price,
     description: description,
