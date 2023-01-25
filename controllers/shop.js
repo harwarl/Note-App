@@ -1,4 +1,6 @@
 const Product = require('../models/product');
+const fs = require('fs');
+const path = require('path');
 const Order = require('../models/order');
 
 exports.getProducts = (req, res, next) => {
@@ -146,3 +148,36 @@ exports.getOrders = (req, res, next) => {
       return next(error);
     });
 };
+
+exports.getInvoice = (req, res, next) => {
+  const orderId = req.params.orderId;
+  Order.findById(orderId)  //authorizing the user
+    .then(order => {
+      if (!order) {
+        return next(new Error('No Order Found!!!'));
+      }
+      if (order.user.userId.toString() !== req.user._id.toString()) {
+        return next(new Error('Unauthorized'));
+      }
+      const invoiceName = 'invoice-' + orderId + '.pdf';
+      console.log(invoiceName);
+      const invoicePath = path.join('data', 'invoices', invoiceName);
+      // PRELOADING DATA
+      // fs.readFile(invoicePath, (err, data) => {
+      //   if (err) {
+      //     return next(err);
+      //   }
+      //   //set some headers
+      //   res.setHeader('Content-Type', 'application/pdf');  //declaring that file is a pdf
+      //   res.setHeader('Content-Disposition', 'inline; filename="' + invoiceName + '"'); //setting a custom filename
+      //   res.send(data);
+      // })
+
+      //STREAMING DATA
+      const file = fs.createReadStream(invoicePath);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline; filename="' +invoiceName+'"');
+      file.pipe(res);
+    })
+    .catch(err => next(err));
+}
