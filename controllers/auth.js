@@ -1,18 +1,18 @@
 const crypto = require('crypto');
-
-const bcrypt = require('bcrypt');
+require('dotenv').config();
+const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const { validationResult } = require('express-validator');
 
 const User = require('../models/user');
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
+  host : 'smtp.gmail.com',
+  port : 465,
   secure: true,
-  auth:{
+  auth :{
     user: process.env.GMAILUSER,
-    pass: process.env.GMAILPASS
+    pass: process.env.PASS
   }
 });
 
@@ -209,7 +209,7 @@ exports.postReset = (req, res, next) => {
         res.redirect('/');
         transporter.sendMail({
           to: req.body.email,
-          from: process.env.GMAILUSER,
+          from: 'shop@node-complete.com',
           subject: 'Password reset',
           html: `
             <p>You requested a password reset</p>

@@ -12,7 +12,8 @@ const multer = require('multer');
 const errorController = require('./controllers/error');
 const User = require('./models/user');
 
-const MONGODB_URI = 'mongodb://127.0.0.1:27017/Ecommerce';
+const MONGODB_URI =
+  'mongodb://127.0.0.1:27017/Ecommerce';
 
 const app = express();
 const store = new MongoDBStore({
@@ -25,23 +26,24 @@ const fileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'images');
   },
-  filename: (req, file, cb) => {
-    cb(null, new Date().toISOString() + '-' + file.originalname);
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, file.originalname + '-' + uniqueSuffix)
   }
 });
 
-
-//to filter out files
-const filter = (req, file, cb)=>{
-  if( file.mimetype === 'image/jpg' ||
-  file.mimetype === 'image/png' ||
-  file.mimetype === 'image/jpeg'){
+const filter = (req, file, cb) => {
+  if ( 
+  file.mimetype === 'image/png'  ||
+  file.mimetype === 'image/jpg'  ||
+  file.mimetype === 'image/jpeg'
+  ) {
     cb(null, true);
   }
   else{
     cb(null, false);
   }
-};
+}
 
 app.set('view engine', 'ejs');
 app.set('views', 'views');
@@ -102,8 +104,7 @@ app.use((error, req, res, next) => {
   res.status(500).render('500', {
     pageTitle: 'Error!',
     path: '/500',
-    isAuthenticated: req.session.isLoggedIn,
-    csrfToken: req.csrfToken()
+    isAuthenticated: req.session.isLoggedIn
   });
 });
 
