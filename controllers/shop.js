@@ -1,6 +1,7 @@
 const Product = require('../models/product');
 const fs = require('fs');
 const path = require('path');
+const PDFDocument = require('pdfkit');
 const Order = require('../models/order');
 
 exports.getProducts = (req, res, next) => {
@@ -160,8 +161,50 @@ exports.getInvoice = (req, res, next) => {
         return next(new Error('Unauthorized'));
       }
       const invoiceName = 'invoice-' + orderId + '.pdf';
-      console.log(invoiceName);
       const invoicePath = path.join('data', 'invoices', invoiceName);
+
+      //using pdfKit to generate on the fly
+      const pdfDoc = new PDFDocument();
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline; filename="' + invoiceName + '"');
+      pdfDoc.pipe(fs.createWriteStream(invoicePath));
+      pdfDoc.pipe(res);
+
+      pdfDoc
+        .fontSize(23)
+        .text('Invoice', {
+          underline: true,
+          align: 'center'
+        });
+
+      let totalPrice = 0
+
+      pdfDoc.text('-----------------', {
+        align: 'center'
+      });
+      order.products.forEach(prod => {
+        totalPrice = totalPrice + prod.product.price * prod.quantity;
+        pdfDoc
+        .text(prod.product.title + 
+          ' - ' + 
+          prod.quantity + 
+          ' x ' + 
+          ' $' + 
+          prod.product.price, {
+            align: 'center'
+          })
+      });
+
+      pdfDoc.text('-----------------', {
+        align: 'center'
+      });
+
+      pdfDoc
+      .text('Total Sum : $ ' + totalPrice, {
+        align: 'center'
+      })
+
+      pdfDoc.end();
       // PRELOADING DATA
       // fs.readFile(invoicePath, (err, data) => {
       //   if (err) {
@@ -174,10 +217,10 @@ exports.getInvoice = (req, res, next) => {
       // })
 
       //STREAMING DATA
-      const file = fs.createReadStream(invoicePath);
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'inline; filename="' +invoiceName+'"');
-      file.pipe(res);
+      // const file = fs.createReadStream(invoicePath);
+      // res.setHeader('Content-Type', 'application/pdf');
+      // res.setHeader('Content-Disposition', 'inline; filename="' +invoiceName+'"');
+      // file.pipe(res);
     })
     .catch(err => next(err));
 }
